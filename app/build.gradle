@@ -1,8 +1,18 @@
 apply plugin: 'com.android.application'
 
+def VUFORIA_SDK_DIR = './libs/vuforia'
+def NATIVE_LIB_DIR = 'lib'
+def JAR_DIR = 'java/vuforia'
+
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.2"
+
+    sourceSets.main {
+        jni.srcDirs = []
+        jniLibs.srcDir "$VUFORIA_SDK_DIR/$NATIVE_LIB_DIR/"
+    }
+
     defaultConfig {
         applicationId "it.drakefk.metar"
         minSdkVersion 16
@@ -12,15 +22,25 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            debuggable true
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
         }
     }
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile files("$VUFORIA_SDK_DIR/$JAR_DIR/Vuforia.jar")
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
