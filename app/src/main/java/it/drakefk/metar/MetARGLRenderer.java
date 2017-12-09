@@ -191,6 +191,11 @@ public class MetARGLRenderer implements GLSurfaceView.Renderer, SampleAppRendere
                     .convertPose2GLMatrix(result.getPose());
             float[] modelViewMatrix = modelViewMatrix_Vuforia.getData();
 
+            if(tIdx == 0){
+                // Show camera distanza from marker
+                float[] cameraPosition = getCameraPositionMatrix(modelViewMatrix);
+                this.mActivity.updateCameraInfoOnUIThread(cameraPosition);
+            }
             int textureIndex = 0;
             textureIndex = trackable.getName().equalsIgnoreCase("tarmac") ? 0
                     : textureIndex;
@@ -252,6 +257,31 @@ public class MetARGLRenderer implements GLSurfaceView.Renderer, SampleAppRendere
     public void setTextures(Vector<Texture> textures) {
         mTextures = textures;
         
+    }
+
+    /**
+     * Obtain the position and rotation of the camera from the Matrix
+     * <a href="https://developer.vuforia.com/library/articles/Solution/Get-the-Camera-Position">
+     * /library/articles/Solution/Get-the-Camera-Position</a>
+     * <p>float cam_x = invTranspMV.data[12];
+     * float cam_y = invTranspMV.data[13];
+     * float cam_z = invTranspMV.data[14];</p>
+     * <p>float cam_right_x = invTranspMV.data[0];
+     * float cam_right_y = invTranspMV.data[1];
+     * float cam_right_z = invTranspMV.data[2];</p>
+     * <p>float cam_up_x = -invTranspMV.data[4];
+     * float cam_up_y = -invTranspMV.data[5];
+     * float cam_up_z = -invTranspMV.data[6];</p>
+     * <p>float cam_dir_x = invTranspMV.data[8];
+     * float cam_dir_y = invTranspMV.data[9];
+     * float cam_dir_z = invTranspMV.data[10];</p>
+     * @param modelViewMatrix the matrix obtained from the marker Tool.convertPose2GLMatrix(result.getPose()).getData();
+     * @return the matrix containing the position of the camera in the marker world
+     */
+    public static float[] getCameraPositionMatrix( float[] modelViewMatrix){
+        float[] inv = new float[16];
+        Matrix.invertM(inv, 0, modelViewMatrix, 0);
+        return inv;
     }
     
 }

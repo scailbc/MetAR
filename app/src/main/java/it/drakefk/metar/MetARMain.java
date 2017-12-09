@@ -23,6 +23,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.CheckBox;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.vuforia.CameraDevice;
@@ -104,6 +105,16 @@ public class MetARMain extends Activity implements SampleApplicationControl,
     /** Gesture Detector used for the focus */
     private GestureDetector mGestureDetector;
 
+
+    /* Layout Camera Position */
+    /** Text used to show the camera position values */
+    private TextView txtCamPos;
+    /** Text used to show the camera Direction vector */
+    private TextView txtCamDir;
+    /** Text used to show the camera Up vector */
+    private TextView txtCamUp;
+    /** Text used to show the camera Right vector */
+    private TextView txtCamRight;
 
     // Called when the activity first starts or the user navigates back to an
     // activity.
@@ -754,6 +765,35 @@ public class MetARMain extends Activity implements SampleApplicationControl,
         return result;
     }
 
+    /**
+     * Show the camera distance and rotation on screen
+     * @param cameraPos the position matrix of the camera
+     */
+    public void updateCameraInfo( float[] cameraPos){
+        float posScale = 1f;
+        String unit = " "+getString(R.string.unit_pos)+" ";
+//		float[] rot = ProgXPoint.toAxisAngle(cameraPos);
+//		float a = (float) (180f/Math.PI);
+        double distance = Math.sqrt((cameraPos[12]*posScale*cameraPos[12]*posScale)+(cameraPos[13]*posScale*cameraPos[13]*posScale)
+                +(cameraPos[14]*posScale*cameraPos[14]*posScale));
+        distance = Math.round(distance*100)*1d/100;
+        Log.d(TAG,"Cam Pos: X: "+cameraPos[12]*posScale+unit+"\n Y: "+cameraPos[13]*posScale+unit+"\n Z: "+cameraPos[14]*posScale+unit
+                +"\n"+getString(R.string.distance)+": "+distance+unit);
+//        this.txtCamPos.setText("Cam Pos: X: "+cameraPos[12]*posScale+unit+"\n Y: "+cameraPos[13]*posScale+unit+"\n Z: "+cameraPos[14]*posScale+unit
+//                +"\n"+getString(R.string.distance)+": "+distance+unit);
+//        if(this.txtCamDir.getVisibility()!=View.GONE)this.txtCamDir.setVisibility(View.GONE);//setText("Cam Dir: X: "+cameraPos[8]+";\n Y: "+cameraPos[9]+";\n Z: "+cameraPos[10]);//Math.acos(cameraPos[0])*a);//
+//        if(this.txtCamUp.getVisibility()!=View.GONE)this.txtCamUp.setVisibility(View.GONE);//setText("Cam Up: X: "+cameraPos[4]+";\n Y: "+cameraPos[5]+";\n Z: "+cameraPos[6]);//Math.acos(cameraPos[1])*a);//
+//        if(this.txtCamRight.getVisibility()!=View.GONE)this.txtCamRight.setVisibility(View.GONE);//setText("Cam Right: X: "+cameraPos[0]+";\n Y: "+cameraPos[1]+";\n Z: "+cameraPos[2]);//Math.acos(cameraPos[2])*a);//
+    }
+
+    public void updateCameraInfoOnUIThread( final float[] cameraPos){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                updateCameraInfo( cameraPos);
+            }
+        });
+    }
 
     private void showToast(String text) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
