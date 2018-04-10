@@ -3,4 +3,9 @@
     <string name="distance">Distanza</string>
     <string name="unit_pos">mm</string>
     <string name="unit_rot">°</string>
+
+    <string name="camera_pos">Camera Pos:</string>
+    <string name="camera_dir">Camera Dir:</string>
+    <string name="camera_up">Camera Up:</string>
+    <string name="camera_right">Camera Right:</string>
 </resources>

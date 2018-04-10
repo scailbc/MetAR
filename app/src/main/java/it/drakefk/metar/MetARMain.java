@@ -1,6 +1,7 @@
 package it.drakefk.metar;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Vector;
 
 import android.app.Activity;
@@ -16,11 +17,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -122,12 +126,20 @@ public class MetARMain extends Activity implements SampleApplicationControl,
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+        this.setContentView(R.layout.metar_main);
+        this.initLayoutCameraPos();
 
         vuforiaAppSession = new SampleApplicationSession(this);
 
         startLoadingAnimation();
         mDatasetStrings.add("StonesAndChips.xml");
         mDatasetStrings.add("Tarmac.xml");
+
+        /* Material of the file xml */
+        /** A layout who only keep the GLSurfaceView*/
+        this.layoutGLView = ((ViewGroup)this.findViewById(R.id.glview));
+//        this.layoutBase = ((RelativeLayout)this.findViewById(R.id.rel_layout));
+        this.layoutCamPos = ((RelativeLayout)this.findViewById(R.id.rel_camera_pos));
 
         vuforiaAppSession
                 .initAR(this, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -141,6 +153,18 @@ public class MetARMain extends Activity implements SampleApplicationControl,
 //        mIsDroidDevice = android.os.Build.MODEL.toLowerCase().startsWith("droid");
 
     }
+
+    /**
+     * Initialize the layout used to check the camera position,
+     * the Buttons used to change the marker position
+     */
+    private void initLayoutCameraPos() {
+        this.txtCamPos = (TextView)findViewById(R.id.txt_cam_pos);
+        this.txtCamDir = (TextView)findViewById(R.id.txt_cam_dir);
+        this.txtCamUp = (TextView)findViewById(R.id.txt_cam_up);
+        this.txtCamRight = (TextView)findViewById(R.id.txt_cam_right);
+    }
+
 
     // Process Single Tap event to trigger autofocus
     private class GestureListener extends
@@ -430,7 +454,9 @@ public class MetARMain extends Activity implements SampleApplicationControl,
             // that the OpenGL ES surface view gets added
             // BEFORE the camera is started and video
             // background is configured.
-            addContentView(mGlView, new LayoutParams(LayoutParams.MATCH_PARENT,
+//            addContentView(mGlView, new LayoutParams(LayoutParams.MATCH_PARENT,
+//                    LayoutParams.MATCH_PARENT));
+            this.layoutGLView.addView(mGlView, new LayoutParams(LayoutParams.MATCH_PARENT,
                     LayoutParams.MATCH_PARENT));
 
             // Sets the UILayout to be drawn in front of the camera
@@ -772,18 +798,21 @@ public class MetARMain extends Activity implements SampleApplicationControl,
     public void updateCameraInfo( float[] cameraPos){
         float posScale = 1f;
         String unit = " "+getString(R.string.unit_pos)+" ";
-//		float[] rot = ProgXPoint.toAxisAngle(cameraPos);
-//		float a = (float) (180f/Math.PI);
         double distance = Math.sqrt((cameraPos[12]*posScale*cameraPos[12]*posScale)+(cameraPos[13]*posScale*cameraPos[13]*posScale)
                 +(cameraPos[14]*posScale*cameraPos[14]*posScale));
         distance = Math.round(distance*100)*1d/100;
+
+        float[] rotation = MatrixUtils.toXYZAngle(cameraPos);
+        float a = (float) (180f/Math.PI);
+        rotation[0] += 0*Math.PI;rotation[1] += 0.0f*Math.PI;rotation[2] *= -1.0f;
+
         Log.d(TAG,"Cam Pos: X: "+cameraPos[12]*posScale+unit+"\n Y: "+cameraPos[13]*posScale+unit+"\n Z: "+cameraPos[14]*posScale+unit
                 +"\n"+getString(R.string.distance)+": "+distance+unit);
-//        this.txtCamPos.setText("Cam Pos: X: "+cameraPos[12]*posScale+unit+"\n Y: "+cameraPos[13]*posScale+unit+"\n Z: "+cameraPos[14]*posScale+unit
-//                +"\n"+getString(R.string.distance)+": "+distance+unit);
-//        if(this.txtCamDir.getVisibility()!=View.GONE)this.txtCamDir.setVisibility(View.GONE);//setText("Cam Dir: X: "+cameraPos[8]+";\n Y: "+cameraPos[9]+";\n Z: "+cameraPos[10]);//Math.acos(cameraPos[0])*a);//
-//        if(this.txtCamUp.getVisibility()!=View.GONE)this.txtCamUp.setVisibility(View.GONE);//setText("Cam Up: X: "+cameraPos[4]+";\n Y: "+cameraPos[5]+";\n Z: "+cameraPos[6]);//Math.acos(cameraPos[1])*a);//
-//        if(this.txtCamRight.getVisibility()!=View.GONE)this.txtCamRight.setVisibility(View.GONE);//setText("Cam Right: X: "+cameraPos[0]+";\n Y: "+cameraPos[1]+";\n Z: "+cameraPos[2]);//Math.acos(cameraPos[2])*a);//
+        this.txtCamPos.setText(String.format(Locale.getDefault(), "Cam Pos: X: %.4f"+unit+"\n Y: %.4f"+unit+"\n Z: %.4f"+unit
+                +"\n"+getString(R.string.distance)+": %.4f"+unit, cameraPos[12]*posScale, cameraPos[13]*posScale, cameraPos[14]*posScale, distance));
+        if(this.txtCamDir.getVisibility()!=View.GONE)this.txtCamDir./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot X %.3f: ",(MatrixUtils.simplifyAngleRad(rotation[0])*a)));
+        if(this.txtCamUp.getVisibility()!=View.GONE)this.txtCamUp./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot Y: %.3f",(MatrixUtils.simplifyAngleRad(rotation[1])*a)));
+        if(this.txtCamRight.getVisibility()!=View.GONE)this.txtCamRight./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot Z: %.3f", MatrixUtils.simplifyAngleRad(rotation[2])*a));
     }
 
     public void updateCameraInfoOnUIThread( final float[] cameraPos){
