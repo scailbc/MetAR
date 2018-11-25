@@ -8,4 +8,6 @@
     <string name="camera_dir">Camera Dir:</string>
     <string name="camera_up">Camera Up:</string>
     <string name="camera_right">Camera Right:</string>
+
+    <string name="menu_load">Importa Marker</string>
 </resources>

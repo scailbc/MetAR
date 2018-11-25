@@ -7,6 +7,7 @@ import java.util.Vector;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -49,6 +50,9 @@ import com.vuforia.samples.VuforiaSamples.ui.SampleAppMenu.SampleAppMenu;
 import com.vuforia.samples.VuforiaSamples.ui.SampleAppMenu.SampleAppMenuGroup;
 import com.vuforia.samples.VuforiaSamples.ui.SampleAppMenu.SampleAppMenuInterface;
 
+import it.drakefk.metar.utils.DatasetLoader;
+import it.drakefk.metar.utils.FolderSearch;
+
 
 public class MetARMain extends Activity implements SampleApplicationControl,
         SampleAppMenuInterface {
@@ -72,6 +76,8 @@ public class MetARMain extends Activity implements SampleApplicationControl,
     /** Lista dei dataset, immagini che l'app e' in grado di tracciare
      * La stringa indica il dataset e il dataset puo' contenere piu' immagini */
     private ArrayList<String> mDatasetStrings = new ArrayList<String>();
+    /** List of the datasets loaded, a group of images that the application may track */
+    private ArrayList<DataSet> mDatasetLoaded = new ArrayList<DataSet>();
     private int mStartDatasetsIndex = 0;
     private int mDatasetsNumber = 0;
 
@@ -392,6 +398,23 @@ public class MetARMain extends Activity implements SampleApplicationControl,
             mCurrentDataset = null;
         }
 
+        // Unload all the loaded datasets
+        for( DataSet d : this.mDatasetLoaded){
+            if( d.isActive()){
+                for (int i = 0; i < objectTracker.getActiveDataSetCount(); i++ ) {
+                    DataSet dataSet = objectTracker.getActiveDataSet(i);
+                    if (dataSet.equals(d)
+                            && !objectTracker.deactivateDataSet(d))
+                    {
+                        result = false;
+                    } else if (!objectTracker.destroyDataSet(d))
+                    {
+                        result = false;
+                    }
+                }
+            }
+        }
+
         return result;
     }
 
@@ -621,7 +644,36 @@ public class MetARMain extends Activity implements SampleApplicationControl,
     final public static int CMD_CAMERA_FRONT = 4;
     final public static int CMD_CAMERA_REAR = 5;
     final public static int CMD_DATASET_START_INDEX = 6;
+    final public static int CMD_LOAD = 9;
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.i(TAG, "onActivityResult: "+requestCode+" res: "+(resultCode == Activity.RESULT_OK));
+        if (requestCode == DatasetLoader.REQUESTCODE_PICK_DATASET
+                && resultCode == Activity.RESULT_OK) {
+
+            String path = data.getExtras().getString(FolderSearch.FILE_SELECTED);
+
+            /* TODO come gestire dataset multipli? Come rimuoverli*/
+            mDatasetStrings.add(path);
+
+            DatasetLoader datasetLoader = new DatasetLoader(MetARMain.this);
+
+            if( path.endsWith(".xml")){
+                datasetLoader.loadAndActivateDataset(path, STORAGE_TYPE.STORAGE_ABSOLUTE);
+            }
+            else if( path.endsWith(".dat")){
+                datasetLoader.loadAndActivateDataset(path.substring(0, path.length()-4)+".xml", STORAGE_TYPE.STORAGE_ABSOLUTE);
+            }
+            else if( path.endsWith(".zip")){
+                // Extract the zip file and load the xml file inside it
+                datasetLoader.loadAndActivateDatasetFromZip(path, STORAGE_TYPE.STORAGE_ABSOLUTE);
+            }
+            Toast.makeText(getApplicationContext(), getString(R.string.menu_load)+" " + path, Toast.LENGTH_LONG).show();
+
+        }
+    }
 
     // This method sets the menu's settings
     private void setSampleAppMenuSettings() {
@@ -637,6 +689,9 @@ public class MetARMain extends Activity implements SampleApplicationControl,
                 CMD_AUTOFOCUS, mContAutofocus);
         mFlashOptionView = group.addSelectionItem(
                 getString(R.string.menu_flash), CMD_FLASH, false);
+
+        group = mSampleAppMenu.addGroup("", false);
+        group.addTextItem("Load", CMD_LOAD);
 
         CameraInfo ci = new CameraInfo();
         boolean deviceHasFrontCamera = false;
@@ -778,6 +833,12 @@ public class MetARMain extends Activity implements SampleApplicationControl,
 
                 break;
 
+            case CMD_LOAD:
+                /* Import new datasets of Vuforia*/
+                Intent intent = FolderSearch.createIntent(this);
+                this.startActivityForResult(intent, DatasetLoader.REQUESTCODE_PICK_DATASET);
+                break;
+
             default:
                 if (command >= mStartDatasetsIndex
                         && command < mStartDatasetsIndex + mDatasetsNumber) {
@@ -813,6 +874,21 @@ public class MetARMain extends Activity implements SampleApplicationControl,
         if(this.txtCamDir.getVisibility()!=View.GONE)this.txtCamDir./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot X %.3f: ",(MatrixUtils.simplifyAngleRad(rotation[0])*a)));
         if(this.txtCamUp.getVisibility()!=View.GONE)this.txtCamUp./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot Y: %.3f",(MatrixUtils.simplifyAngleRad(rotation[1])*a)));
         if(this.txtCamRight.getVisibility()!=View.GONE)this.txtCamRight./*setVisibility(View.GONE);/*/setText(String.format(Locale.getDefault(), "Rot Z: %.3f", MatrixUtils.simplifyAngleRad(rotation[2])*a));
+    }
+
+    /**
+     * @return the mDatasetStrings
+     */
+    public ArrayList<String> getDatasetStrings() {
+        return mDatasetStrings;
+    }
+
+    /**
+     * The list of datasets loaded by the user
+     * @return the mDatasetLoaded
+     */
+    public ArrayList<DataSet> getDatasetLoaded() {
+        return mDatasetLoaded;
     }
 
     public void updateCameraInfoOnUIThread( final float[] cameraPos){
